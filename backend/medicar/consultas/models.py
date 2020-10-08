@@ -21,19 +21,18 @@ class Medico(models.Model):
         return f"{self.nome}, CRM - {self.crm}"
 
 
-class Agendamento(models.Model):
-    dia = models.DateField()
-    horario = models.TimeField()
-    livre = models.BooleanField(default=True)
-
-
 class Agenda(models.Model):
+    dia = models.DateField()
     medico = models.OneToOneField(Medico, on_delete=models.CASCADE)
-    agendamentos = models.ManyToManyField(Agendamento)
+
+    def __str__(self):
+        return f"Agenda de {self.medico.nome}"
 
 
 class Consulta(models.Model):
-    cliente = models.OneToOneField(Cliente, on_delete=models.CASCADE)
-    medico = models.OneToOneField(Medico, on_delete=models.SET_NULL, null=True)
-    agendamento = models.OneToOneField(Agendamento, on_delete=models.CASCADE)
+    cliente = models.OneToOneField(Cliente, on_delete=models.SET_NULL, null=True)
+    agenda = models.ForeignKey(Agenda, on_delete=models.PROTECT)
+    horario = models.TimeField()
 
+    def __str__(self):
+        return f"{self.cliente} com Dr(a). {self.medico} em {self.agenda.dia} às {self.horario}"

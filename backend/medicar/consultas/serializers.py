@@ -22,7 +22,19 @@ class MedicoSerializer(serializers.ModelSerializer):
 class ConsultaSerializer(serializers.ModelSerializer):
 
     medico = MedicoSerializer()
+    dia = serializers.CharField(source='agenda.dia', read_only=True)
 
     class Meta:
         model = Consulta
-        fields = ['id', 'agendamento', 'medico']
+        fields = ['id', 'dia', 'horario', 'data_agendamento', 'medico']
+
+
+class AgendaSerializer(serializers.ModelSerializer):
+
+    medico = MedicoSerializer()
+
+    class Meta:
+        model = Agenda
+        fields = ['id', 'dia', 'medico', 'consultas']
+
+

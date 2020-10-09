@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -31,6 +33,26 @@ class MedicoList(APIView):
             queryset = queryset.filter(especialidade__id__in=especialidade)
 
         serializer = MedicoSerializer(queryset, many=True)
+
+        return Response(serializer.data)
+
+
+class ConsultaList(APIView):
+
+    def get(self, request):
+        queryset = Consulta.objects.all()
+        
+        serializer = ConsultaSerializer(queryset, many=True)
+
+
+        return Response(serializer.data)
+
+
+class AgendaList(APIView):
+
+    def get(self, request, format=None):
+        queryset = Agenda.objects.all()
+        serializer = AgendaSerializer(queryset, many=True)
 
         return Response(serializer.data)
 

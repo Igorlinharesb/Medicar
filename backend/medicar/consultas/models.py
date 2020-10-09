@@ -26,13 +26,20 @@ class Agenda(models.Model):
     medico = models.OneToOneField(Medico, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"Agenda de {self.medico.nome}"
+        date = f"{self.dia.day}/{self.dia.month}/{self.dia.year}"
+        return f"{self.medico.nome} ({date})"
 
 
 class Consulta(models.Model):
-    cliente = models.OneToOneField(Cliente, on_delete=models.SET_NULL, null=True)
-    agenda = models.ForeignKey(Agenda, on_delete=models.PROTECT)
+    medico = models.ForeignKey(Medico, on_delete=models.SET_NULL, null=True, blank=True)
+    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True,blank=True)
+    agenda = models.ForeignKey(Agenda, on_delete=models.PROTECT, related_name='consultas')
     horario = models.TimeField()
+    data_agendamento = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.cliente} com Dr(a). {self.medico} em {self.agenda.dia} às {self.horario}"
+        date = f"{self.agenda.dia.day}/{self.agenda.dia.month}/{self.agenda.dia.year}"
+        if self.cliente is None:
+            return f"Dr(a). {self.agenda.medico.nome} livre em {date} às {self.horario}"
+
+        return f"{self.cliente} com Dr(a). {self.agenda.medico.nome} em {date} às {self.horario}"

@@ -1,15 +1,19 @@
+from datetime import date
 from datetime import datetime
+from django.db.models import Count
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.response import Response
-
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 from .models import *
 from .serializers import *
-# Create your views here.
+
 
 class EspecialidadeList(APIView):
+
+    permission_classes = [IsAuthenticated]
     
     def get(self, request, format=None):
         
@@ -20,10 +24,12 @@ class EspecialidadeList(APIView):
 
 class MedicoList(APIView):
 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, format=None):
 
         queryset = Medico.objects.all()
-        especialidade = self.request.query_params.getlist('especialidade')
+        especialidade = request.query_params.getlist('especialidade')
         nome = request.query_params.get('search')
 
         if nome is not None:    
@@ -39,19 +45,63 @@ class MedicoList(APIView):
 
 class ConsultaList(APIView):
 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
+
         queryset = Consulta.objects.all()
         
-        serializer = ConsultaSerializer(queryset, many=True)
+        # Consultas do usuário logado
+        queryset = Consulta.objects.filter(cliente=request.user)
 
+        # Consulta posteriores ao dia atual
+        qs1 = queryset.filter(agenda__dia__gt = date.today())
+
+        # Consultas no dia atual em horários futuros
+        now = datetime.now()
+        current_time = now.strftime("%H:%M")
+        qs2 = queryset.filter(agenda__dia=date.today()).filter(horario__gt=current_time)
+
+        queryset = qs2.union(qs1)
+        serializer = ConsultaSerializer(queryset, many=True)
 
         return Response(serializer.data)
 
 
 class AgendaList(APIView):
 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, format=None):
+
         queryset = Agenda.objects.all()
+
+        # Filtrando Agendas com todos os horários preenchidos
+        queryset = queryset.filter(consultas__cliente=None)
+        queryset = queryset.annotate(c_count=Count('consultas')).filter(c_count__gt=0)
+
+        # Filtrando datas passadas
+        queryset = queryset.filter(dia__gt = date.today())
+
+        # Filtrando por parâmetros passados:
+        medico = self.request.query_params.get('medico')
+        especialidade = request.query_params.getlist('especialidade')
+        data_inicio = self.request.query_params.get('data_inicio')
+        data_final = self.request.query_params.get('data_final')
+        
+        if medico is not None:
+            queryset = queryset.filter(medico__id=medico)
+
+        if len(especialidade) != 0:
+            queryset = queryset.filter(especialidade__id__in=especialidade)
+        
+        if data_final is not None:
+            queryset = queryset.filter(dia__lt=data_final)
+
+        if data_inicio is not None:
+            queryset = queryset.filter(dia__gt=data_inicio)
+        
+                 
         serializer = AgendaSerializer(queryset, many=True)
 
         return Response(serializer.data)
@@ -68,7 +118,7 @@ Pra fazer:
     - Consultas de um usuário logado {
         * Filtro excluindo consultas passadas
         * Ordenar por dia e horário
-    }
+    } OK
 
     - Listar agendas disponíveis{ (GET /agendas/... )
         * Filtro por id do médico

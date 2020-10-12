@@ -1,6 +1,12 @@
 from django.db import models
 from django.conf import settings
-# Create your models here.
+from django.db.models import Q
+
+from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from rest_framework.authtoken.models import Token
+
 
 Cliente = settings.AUTH_USER_MODEL
 
@@ -23,7 +29,7 @@ class Medico(models.Model):
 
 class Agenda(models.Model):
     dia = models.DateField()
-    medico = models.OneToOneField(Medico, on_delete=models.CASCADE)
+    medico = models.ForeignKey(Medico, on_delete=models.CASCADE)
 
     def __str__(self):
         date = f"{self.dia.day}/{self.dia.month}/{self.dia.year}"
@@ -43,3 +49,9 @@ class Consulta(models.Model):
             return f"Dr(a). {self.agenda.medico.nome} livre em {date} às {self.horario}"
 
         return f"{self.cliente} com Dr(a). {self.agenda.medico.nome} em {date} às {self.horario}"
+
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_auth_token(sender, instance=None, created=False, **kwargs):
+    if created:
+        Token.objects.create(user=instance) 

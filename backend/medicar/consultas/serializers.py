@@ -7,7 +7,6 @@ class EspecialidadeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Especialidade
         fields = '__all__'
-    # Sem necessidade de validação
 
 
 class MedicoSerializer(serializers.ModelSerializer):
@@ -34,14 +33,12 @@ class AgendaSerializer(serializers.ModelSerializer):
     medico = MedicoSerializer()
     consultas = serializers.SerializerMethodField('get_consultas')
 
+    class Meta:
+        model = Agenda
+        fields = ['id', 'dia', 'medico', 'consultas']
+
     def get_consultas(self, agenda):
         qs = Consulta.objects.filter(cliente=None, agenda=agenda)
         serializer = ConsultaSerializer(instance=qs, many=True)
         return serializer.data
-
-    #consultas = serializers.SlugRelatedField(many=True, read_only=True, slug_field='horario')
-    #consultas = ConsultaSerializer(many=True)
-    class Meta:
-        model = Agenda
-        fields = ['id', 'dia', 'medico', 'consultas']
 

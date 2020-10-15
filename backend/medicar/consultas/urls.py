@@ -5,7 +5,6 @@ from django.urls import path, include
 
 
 urlpatterns = [
-    path('/login', views.login_view),
     path('api-token-auth/', obtain_auth_token),
     path('api-auth/', include('rest_framework.urls')),
     path('especialidades/', views.EspecialidadeList.as_view(), name='esp-list'),

@@ -1,11 +1,17 @@
-from django.db import models
-from django.conf import settings
-from django.db.models import Q
+from datetime import datetime
 
+from django.db import models
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
 from rest_framework.authtoken.models import Token
+
+
+def validate_dia(self, dia):
+    if dia < datetime.now().date():
+        raise serializers.ValidationError("Não é possível cadastrar agendas para dias passados.")
+    return dia
 
 
 Cliente = settings.AUTH_USER_MODEL
@@ -17,6 +23,7 @@ class Especialidade(models.Model):
     def __str__(self):
         return self.especialidade
         
+
 class Medico(models.Model):
     nome = models.CharField(max_length=50)
     crm = models.IntegerField()
@@ -28,8 +35,12 @@ class Medico(models.Model):
 
 
 class Agenda(models.Model):
-    dia = models.DateField()
+    dia = models.DateField(validators=[validate_dia])
     medico = models.ForeignKey(Medico, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('medico', 'dia')
+        ordering = ('dia',)
 
     def __str__(self):
         date = f"{self.dia.day}/{self.dia.month}/{self.dia.year}"
@@ -42,6 +53,9 @@ class Consulta(models.Model):
     agenda = models.ForeignKey(Agenda, on_delete=models.PROTECT, related_name='consultas')
     horario = models.TimeField()
     data_agendamento = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('agenda', 'horario')
 
     def __str__(self):
         date = f"{self.agenda.dia.day}/{self.agenda.dia.month}/{self.agenda.dia.year}"

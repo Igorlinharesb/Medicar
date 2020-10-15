@@ -1,66 +1,16 @@
 from datetime import date
 from datetime import datetime
+
 from django.http import Http404
 from django.db.models import Count
 from django.shortcuts import redirect
 
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 from .models import *
 from .serializers import *
-
-
-def login_view(request):
-    if request.method == "POST":
-
-        # Attempt to sign user in
-        username = request.POST["username"]
-        password = request.POST["password"]
-        user = authenticate(request, username=username, password=password)
-
-        # Check if authentication successful
-        if user is not None:
-            login(request, user)
-            return redirect('127.0.0.1:333/home')
-        else:
-            return redirect('127.0.0.1:333/login')
-
-
-
-def logout_view(request):
-    logout(request)
-    return HttpResponseRedirect(reverse("index"))
-
-
-def register(request):
-    if request.method == "POST":
-        username = request.POST["username"]
-        email = request.POST["email"]
-
-        # Ensure password matches confirmation
-        password = request.POST["password"]
-        confirmation = request.POST["confirmation"]
-        if password != confirmation:
-            return render(request, "auctions/register.html", {
-                "message": "Passwords must match."
-            })
-
-        # Attempt to create new user
-        try:
-            user = User.objects.create_user(username, email, password)
-            user.save()
-        except IntegrityError:
-            return render(request, "auctions/register.html", {
-                "message": "Username already taken."
-            })
-        login(request, user)
-        return HttpResponseRedirect(reverse("index"))
-    else:
-        return render(request, "auctions/register.html")
 
 
 class EspecialidadeList(APIView):
@@ -76,7 +26,7 @@ class EspecialidadeList(APIView):
 
 class MedicoList(APIView):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, format=None):
 
@@ -101,8 +51,10 @@ class ConsultaList(APIView):
 
     def get(self, request):
 
+        # Todas as consultas ordenadas
         queryset = Consulta.objects.all()
-        
+        queryset = queryset.order_by('horario')
+
         # Consultas do usuário logado
         queryset = Consulta.objects.filter(cliente=request.user)
 
@@ -134,6 +86,7 @@ class ConsultaList(APIView):
 
         return Response(status=201)
 
+
 class ConsultaDetail(APIView):
     permission = [IsAuthenticated]
 
@@ -158,6 +111,7 @@ class AgendaList(APIView):
     def get(self, request, format=None):
 
         queryset = Agenda.objects.all()
+        queryset = queryset.order_by('dia')
 
         # Filtrando Agendas com todos os horários preenchidos
         queryset = queryset.filter(consultas__cliente=None)
@@ -188,39 +142,3 @@ class AgendaList(APIView):
         serializer = AgendaSerializer(queryset, many=True)
 
         return Response(serializer.data)
-
-
-
-'''
-Pra fazer:
-    - Autenticação
-    - Especialidades OK
-    - Medicos {
-        * Filtro por nome e especialidades
-    } OK
-
-    - Consultas de um usuário logado {
-        * Filtro excluindo consultas passadas
-        * Ordenar por dia e horário
-    } OK
-
-    - Listar agendas disponíveis{ (GET /agendas/... )
-        * Filtro por id do médico
-        * Filtro de 1 ou mais especialidades
-        * Por intervalo de data
-        * Ordenar por dia e horário
-        * Eliminar horários passados e já preenchidos
-        * 
-    }
-
-    - Marcar consulta para usuário logado {
-        * Passar id da agenda e horário
-        * Retornar todos os dados do agendamento
-    }
-
-    - Desmarcar consulta { (DELETE /consultas/<consulta_id>)
-        * Somente se o usuário logado tiver feito a consulta
-        * Não é possível desmarcar consulta que nunca foi marcada (id inexistente)
-        * Não é possível desmarcar consulta que já ocorreu
-    }
-'''
